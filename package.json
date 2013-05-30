@@ -1,0 +1,15 @@
+{
+    "name": "s3glacier"
+  , "version": "0.0.1"
+  , "description": "Backup S3 to Glacier"
+  , "homepage": ""
+  , "keywords": [""]
+  , "author": "Josh Lyford"
+  , "dependencies": {
+      "kue": "0.6.2",
+      "mysql":"2.0.0-alpha8",
+      "mkdirp":"0.3.5",
+      "aws-sdk":""
+     }
+  , "main": "server"
+}
