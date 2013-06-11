@@ -25,7 +25,7 @@ jobs.create('fix_bucket', config.s3 ).save();
 
 var file_path = config.local_path_fix;
 if(config.add_local_directory){
-	file_path = __dirname + "/storage" + file_path;
+	file_path = __dirname + file_path;
 }
 
 fs.unlink(file_path, function (err) {
@@ -86,7 +86,7 @@ jobs.process('fix_get_from_s3',  config.max_files_at_once , function(job, done){
 	var info = job.data;
 		var file_path = config.local_path_fix + info.Key;
 		if(config.add_local_directory){
-			file_path = __dirname + "/storage" + file_path;
+			file_path = __dirname + file_path;
 		}
 		var create_dir = path.dirname( file_path );
 		info.file = file_path;

@@ -1,17 +1,27 @@
-# Amazon s3 to Glacier 
+# s3 to Glacier
 
-  Built for [node.js](http://nodejs.org) using [Kue](https://github.com/learnboost/kue) a priority job queue backed by [redis](http://redis.io).
+  Move files to Glacier from S3
 
 ## Installation
-	
-	$ cd /node-aws
+
     $ npm install
 
-## Installing redis on OS X
+## Start Backup
 
-    $ curl -O http://download.redis.io/redis-stable.tar.gz 
-    $ tar -xvzf redis-stable.tar.gz 
-    $ rm redis-stable.tar.gz
-    $ cd redis-stable
-    $ make 
-    $ sudo make install
+$ curl -H "Content-Type: application/json" -X POST -d \
+    '{
+       "type": "build_backup_jobs",
+       "data": {
+       },
+       "options" : {}
+     }' http://localhost:3000/job
+
+
+curl -H "Content-Type: application/json" -X POST -d \
+    '{
+       "type": "crawl_dir",
+       "data": {
+       	"dir":"/Volumes/cluster34/1"
+       },
+       "options" : {}
+     }'

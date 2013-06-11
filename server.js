@@ -40,6 +40,54 @@ jobs.process('crawl_bucket', 10, function(job, done){
 });
 
 
+jobs.process('crawl_dir', 1, function(job, done){
+	var info = job.data;
+	fs.readdir(info.dir, function(err, list) {
+		var pending = list.length;
+		list.forEach(function(file) {
+		file = info.dir + '/' + file;
+		//console.log(file);
+		fs.stat(file, function(err, stat) {
+			if (stat && stat.isDirectory()) {
+				jobs.create('crawl_dir', { dir: file, title: file } ).save();
+			} else {
+				jobs.create('process_local_file', { file: file , title: file } ).save();
+			}
+		});
+		});
+		done();
+	});
+});
+
+
+
+jobs.process('process_local_file', 10, function(job, done){ 
+	//console.log(results.length);
+	var info = job.data;
+	pool.getConnection(function(err, connection) {
+		if (err){  console.log(err); }
+		connection.query('SELECT * FROM ftp_aws_index WHERE ftp LIKE ?', info.file, function(err, rows, fields) {
+
+			if (err){  console.log(err); }
+			if(!rows[0]){
+			job.log("add");
+			var ftpcluster = "34";
+			connection.query("INSERT INTO ftp_aws_index SET ?", { ftp: info.file , cluster: ftpcluster });
+			//console.log('File', file, 'has been added');
+			done();
+			} else {
+			job.log("add");
+			done();
+			}
+			connection.end();
+		});
+	});	
+	
+	
+});
+
+
+
 function process_list_objects(err,data) {
 	var next_list = config.s3;
 	for (var index in data.Contents) {
@@ -90,7 +138,7 @@ jobs.process('get_from_s3',  config.max_files_at_once , function(job, done){
 	var info = job.data;
 		var file_path = config.local_path + info.Key;
 		if(config.add_local_directory){
-			file_path = __dirname + "/storage" + file_path;
+			file_path = __dirname + file_path;
 		}
 		var create_dir = path.dirname( file_path );
 		info.file = file_path;
@@ -149,6 +197,68 @@ jobs.process('move_to_glacier',  config.max_files_at_once, function(job, done){
 	});
 });
 
+jobs.process('build_backup_jobs',  config.max_files_at_once, function(job, done){
+	var info = job.data;
+	job.log('Load info from db');
+	pool.getConnection(function(err, connection) {
+			if (err) throw done(err);
+			connection.query("select * from ftp_aws_index WHERE s3 is NULL ",'',  function(err, rows, fields) {
+			if (err){  console.log(err); }
+			console.log(rows.length);
+			job.progress(0, rows.length);
+
+			for (var i = 0; i < rows.length; i++) {
+				console.log('File', rows[i].ftp, 'has been added');
+				job.progress(i, rows.length);
+				jobs.create('ftp_move_to_s3', rows[i] ).save();
+			};
+
+	
+		});
+			connection.end();
+			done();
+		});
+});
+
+//jobs.create('build_backup_jobs').save();
+
+
+
+
+jobs.process('ftp_move_to_s3', config.max_files_at_once, function(job, done){
+  	var info = job.data;
+  	var n=info.ftp.split("cluster"+info.cluster+"/");
+	if(n[1]){
+		fs.readFile(info.ftp, function (err, data) {
+
+			console.log('attempt?');
+    if (err) { throw err; }
+    console.log({
+
+    	Bucket:"brewlabs-node",
+    	Key: n[1],
+    	Body: data
+    });
+    s3.client.putObject({
+
+    	Bucket:"brewlabs-node",
+    	Key: n[1],
+    	Body: data
+    } , function (res, data) {
+    		done();
+            console.log( res +'Successfully uploaded file.' + data);
+        });
+});
+
+
+	} else {
+		done('Could not find Cluster');
+	}
+// done();
+});
+
 app.use(kue.app);
 app.listen(config.port);
 console.log('UI started on port '+ config.port);
+
+

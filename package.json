@@ -9,7 +9,8 @@
       "kue": "0.6.2",
       "mysql":"2.0.0-alpha8",
       "mkdirp":"0.3.5",
-      "aws-sdk":""
+      "aws-sdk":"",
+      "chokidar":""
      }
   , "main": "server"
 }
